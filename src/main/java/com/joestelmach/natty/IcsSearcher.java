@@ -6,6 +6,7 @@ import net.fortuna.ical4j.model.Component;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Period;
 import net.fortuna.ical4j.model.PeriodList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,59 +36,78 @@ public class IcsSearcher {
   }
 
   public Map<Integer, Date> findDates(int startYear, int endYear, String eventSummary) {
-    Map<Integer, Date> holidays = new HashMap<Integer, Date>(); 
-    
-    if(_holidayCalendar == null) {
+    Map<Integer, Date> holidays = new HashMap<Integer, Date>();
+
+    if (_holidayCalendar == null) {
       InputStream fin = WalkerState.class.getResourceAsStream(_calendarFileName);
       try {
         _holidayCalendar = new CalendarBuilder().build(fin);
-        
+
       } catch (IOException e) {
-        _logger.error("Couln't open " + _calendarFileName);
+        _logger.error("Couldn't open " + _calendarFileName);
         return holidays;
-        
+
       } catch (ParserException e) {
-        _logger.error("Couln't parse " + _calendarFileName);
+        _logger.error("Couldn't parse " + _calendarFileName);
         return holidays;
+      } finally {
+        if (fin != null) {
+          try {
+            fin.close();
+          } catch (IOException e) {
+            // Ignore
+          }
+        }
       }
     }
-    
+
     Period period = null;
-    try {
+    try
+
+    {
       DateTime from = new DateTime(startYear + "0101T000000Z");
-      DateTime to = new DateTime(endYear + "1231T000000Z");;
+      DateTime to = new DateTime(endYear + "1231T000000Z");
+      ;
       period = new Period(from, to);
-      
-    } catch (ParseException e) {
+
+    } catch (
+        ParseException e
+        )
+
+    {
       _logger.error("Invalid start or end year: " + startYear + ", " + endYear, e);
       return holidays;
     }
-    
-    for (Object  component : _holidayCalendar.getComponents(VEVENT)) {
+
+    for (
+        Object component
+        : _holidayCalendar.getComponents(VEVENT))
+
+    {
       Component vevent = (Component) component;
       String summary = vevent.getProperty(SUMMARY).getValue();
-      if(summary.equals(eventSummary)) {
+      if (summary.equals(eventSummary)) {
         PeriodList list = vevent.calculateRecurrenceSet(period);
-        for(Object p : list) {
+        for (Object p : list) {
           DateTime date = ((Period) p).getStart();
-          
+
           // this date is at the date of the holiday at 12 AM UTC
           Calendar utcCal = calendarSource.getCurrentCalendar();
           utcCal.setTimeZone(TimeZone.getTimeZone(GMT));
           utcCal.setTime(date);
-          
+
           // use the year, month and day components of our UTC date to form a new local date
           Calendar localCal = calendarSource.getCurrentCalendar();
           localCal.setTimeZone(_timeZone);
           localCal.set(Calendar.YEAR, utcCal.get(Calendar.YEAR));
           localCal.set(Calendar.MONTH, utcCal.get(Calendar.MONTH));
           localCal.set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH));
-          
+
           holidays.put(localCal.get(Calendar.YEAR), localCal.getTime());
         }
       }
     }
-  
+
     return holidays;
   }
 
