@@ -40,6 +40,10 @@ public class IcsSearcher {
 
     if (_holidayCalendar == null) {
       InputStream fin = WalkerState.class.getResourceAsStream(_calendarFileName);
+      if(fin == null) {
+        return holidays;
+      }
+      
       try {
         _holidayCalendar = new CalendarBuilder().build(fin);
 
